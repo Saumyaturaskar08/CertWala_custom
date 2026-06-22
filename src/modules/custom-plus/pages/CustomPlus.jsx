@@ -172,7 +172,17 @@ function CustomPlus() {
     };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-[#eef1f5]">
+    // <div className="h-screen flex overflow-hidden bg-[#eef1f5]">
+    <div
+className="
+h-screen
+flex
+overflow-hidden
+bg-[#eef1f5]
+
+min-w-0
+"
+>
 
       {/* Left Toolbar */}
       <LeftToolbar
@@ -186,64 +196,103 @@ function CustomPlus() {
       />
 
       {/* Main Content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      {/* <div className="flex flex-col flex-1 overflow-hidden"> */}
+      <div
+className="
+flex
+flex-col
+
+flex-1
+
+min-w-0
+
+overflow-hidden
+"
+>
 
         {/* Top Header */}
+       
         <div
-          className="
-            h-14
-            bg-white
-            border-b
-            border-gray-200
-            px-6
-            flex
-            items-center
-            justify-between
-            flex-shrink-0
-          "
-        >
+className="
+h-14
+
+bg-white
+
+border-b
+border-gray-200
+
+px-2
+md:px-6
+
+flex
+items-center
+
+justify-between
+
+gap-2
+
+flex-shrink-0
+"
+>
 
           <Button
       onClick={() => navigate("/")}
+     
       className="
-        flex
-        items-center
-        gap-2
-        px-3
-        py-2
-        border
-        border-gray-300
-        rounded-lg
-        bg-white
-        hover:bg-gray-100
-      "
+flex
+items-center
+
+gap-1
+
+px-2
+md:px-3
+
+py-2
+
+text-xs
+md:text-sm
+"
     >
       <ArrowLeft size={18} />
       Back
     </Button>
     
+         
           <h2
-            className="
-              text-lg
-              font-semibold
-              text-gray-800
-            "
-          >
-            Custom+ Editor
-          </h2>
+className="
+text-sm
+md:text-lg
+
+font-semibold
+
+text-gray-800
+
+truncate
+"
+>
+Custom+
+</h2>
 
           <Button
             onClick={
               downloadPNG
             }
+            
             className="
-              px-4
-              py-2
-              bg-[#20B2AA]
-              text-white
-              rounded-lg
-              hover:opacity-90
-            "
+px-2
+md:px-4
+
+py-2
+
+text-xs
+md:text-sm
+
+bg-[#20B2AA]
+
+text-white
+
+rounded-lg
+"
           >
             Download PNG
           </Button>
