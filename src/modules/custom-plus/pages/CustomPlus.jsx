@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import html2canvas from "html2canvas";
+// import html2canvas from "html2canvas";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import html2canvas from "html2canvas-pro";
 
 import LeftToolbar from "../commn/LeftToolbar";
 import CanvasArea from "../commn/CanvasArea";
@@ -145,34 +146,48 @@ function CustomPlus() {
     ]);
   };
 
-  const downloadPNG =
-    async () => {
-      if (!canvasRef.current)
-        return;
+  // const downloadPNG =
+  //   async () => {
+  //     if (!canvasRef.current)
+  //       return;
 
-      const canvas =
-        await html2canvas(
-          canvasRef.current
-        );
+  //     const canvas =
+  //       await html2canvas(
+  //         canvasRef.current
+  //       );
+     
 
-      const link =
-        document.createElement(
-          "a"
-        );
+  //     const link =
+  //       document.createElement(
+  //         "a"
+  //       );
 
-      link.download =
-        "certificate.png";
+  //     link.download =
+  //       "certificate.png";
 
-      link.href =
-        canvas.toDataURL(
-          "image/png"
-        );
+  //     link.href =
+  //       canvas.toDataURL(
+  //         "image/png"
+  //       );
 
-      link.click();
-    };
+  //     link.click();
+  //   };
+  const downloadPNG = async () => {
+  if (!canvasRef.current) return;
+
+  const canvas = await html2canvas(canvasRef.current, {
+    backgroundColor: "#ffffff",
+    useCORS: true,
+  });
+
+  const link = document.createElement("a");
+  link.download = "certificate.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+};
 
   return (
-    // <div className="h-screen flex overflow-hidden bg-[#eef1f5]">
+   
     <div
 className="
 h-screen
@@ -331,7 +346,7 @@ rounded-lg
               }
             />
 
-            <PageManager
+            {/* <PageManager
               pages={pages}
               activePage={
                 activePage
@@ -342,19 +357,47 @@ rounded-lg
               addPage={
                 addPage
               }
-            />
+            /> */}
+            <div className="hidden md:block">
+
+  <PageManager
+    pages={pages}
+    activePage={
+      activePage
+    }
+    setActivePage={
+      setActivePage
+    }
+    addPage={
+      addPage
+    }
+  />
+
+</div>
 
           </div>
 
           {/* Properties */}
-          <PropertiesPanel
+          {/* <PropertiesPanel
             selectedElement={
               selectedElement
             }
             updateElement={
               updateElement
             }
-          />
+          /> */}
+          <div className="hidden md:block">
+
+  <PropertiesPanel
+    selectedElement={
+      selectedElement
+    }
+    updateElement={
+      updateElement
+    }
+  />
+
+</div>
 
         </div>
 
