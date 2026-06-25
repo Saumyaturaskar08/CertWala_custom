@@ -1,10 +1,7 @@
+// today
+import { useEffect, useState } from "react";
 import { Rnd } from "react-rnd";
-
-import {
-  Copy,
-  Trash2,
-  Layers3,
-} from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 
 function CanvasArea({
   canvasRef,
@@ -15,273 +12,217 @@ function CanvasArea({
   setSelectedElementId,
   duplicateElement,
   deleteElement,
+  canvasWidth,
+  canvasHeight,
 }) {
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const resize = () => {
+      const availableWidth = window.innerWidth - 300;
+      const availableHeight = window.innerHeight - 180;
+
+      const scaleX = availableWidth / canvasWidth;
+      const scaleY = availableHeight / canvasHeight;
+
+      setScale(Math.min(scaleX, scaleY, 1));
+    };
+
+    resize();
+
+    window.addEventListener("resize", resize);
+
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, [canvasWidth, canvasHeight]);
+
   return (
     <div
       className="
-        flex-1
-        overflow-auto
-        p-6
-        bg-[#eef1f5]
-      "
+      flex-1
+      bg-[#eef1f5]
+      overflow-hidden
+      flex
+      justify-center
+      items-center
+    "
     >
       <div
-        className="
-          flex
-          justify-center
-          min-w-max
-        "
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "center",
+        }}
       >
         <div
           className="
-            bg-white
-            rounded-2xl
-            shadow-xl
-            border
-            border-gray-200
-            overflow-hidden
-          "
+          bg-white
+          rounded-xl
+          shadow-xl
+          overflow-hidden
+        "
         >
-          {/* Header */}
-          <div
-            className="
-              h-14
-              px-5
-              border-b
-              flex
-              items-center
-              justify-between
-              bg-white
-            "
-          >
-            <h2
-              className="
-                text-lg
-                font-semibold
-              "
-            >
-              Certificate Canvas
-            </h2>
-
-            <span
-              className="
-                text-sm
-                text-gray-500
-              "
-            >
-              Drag & Resize Enabled
-            </span>
-          </div>
-
-          {/* Canvas */}
           <div
             ref={canvasRef}
+            onClick={() => setSelectedElementId(null)}
+            style={{
+              width: canvasWidth,
+              height: canvasHeight,
+            }}
             className="
-              relative
-              w-[1000px]
-              h-[700px]
-              bg-white
-              overflow-hidden
-            "
+            relative
+            bg-white
+            overflow-hidden
+          "
           >
-            {/* Certificate */}
-            {certificateImage ? (
+            {certificateImage && (
               <img
-                src={
-                  certificateImage
-                }
-                alt="certificate"
+                src={certificateImage}
+                alt=""
                 className="
-                  absolute
-                  inset-0
-                  w-full
-                  h-full
-                  object-contain
-                "
+                absolute
+                inset-0
+                w-full
+                h-full
+                object-fill
+              "
               />
-            ) : (
-              <div
-                className="
-                  w-full
-                  h-full
-                  flex
-                  items-center
-                  justify-center
-                  text-gray-400
-                  text-xl
-                "
-              >
-                Upload Certificate
-              </div>
             )}
 
-            {/* Elements */}
-            {elements.map(
-              (element) => (
-                <Rnd
-                  key={element.id}
-                  size={{
-                    width:
-                      element.width,
-                    height:
-                      element.height,
+            {elements.map((element) => (
+              <Rnd
+                key={element.id}
+                size={{
+                  width: element.width,
+                  height: element.height,
+                }}
+                position={{
+                  x: element.x,
+                  y: element.y,
+                }}
+                bounds="parent"
+                scale={scale}
+                enableUserSelectHack={false}
+                onDragStop={(e, d) => {
+                  updateElement(element.id, {
+                    x: d.x,
+                    y: d.y,
+                  });
+                }}
+                onResizeStop={(e, dir, ref, delta, position) => {
+                  updateElement(element.id, {
+                    width: parseInt(ref.style.width),
+                    height: parseInt(ref.style.height),
+                    ...position,
+                  });
+                }}
+              >
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedElementId(element.id);
                   }}
-                  position={{
-                    x: element.x,
-                    y: element.y,
-                  }}
-                  onDragStop={(
-                    e,
-                    d
-                  ) => {
-                    updateElement(
-                      element.id,
-                      {
-                        x: d.x,
-                        y: d.y,
-                      }
-                    );
-                  }}
-                  onResizeStop={(
-                    e,
-                    dir,
-                    ref,
-                    delta,
-                    position
-                  ) => {
-                    updateElement(
-                      element.id,
-                      {
-                        width:
-                          parseInt(
-                            ref.style
-                              .width
-                          ),
-                        height:
-                          parseInt(
-                            ref.style
-                              .height
-                          ),
-                        ...position,
-                      }
-                    );
-                  }}
-                  bounds="parent"
+                  className={`
+                  relative
+                  w-full
+                  h-full
+                  cursor-move
+                  ${
+                    selectedElementId === element.id
+                      ? "border-2 border-violet-500"
+                      : ""
+                  }
+                `}
                 >
-                  <div
-                    onClick={() =>
-                      setSelectedElementId(
-                        element.id
-                      )
-                    }
-                    className={`
-                      relative
+                  {selectedElementId === element.id && (
+                    <div
+                      className="
+                      absolute
+                      -top-12
+                      left-0
+                      bg-white
+                      border
+                      rounded-lg
+                      shadow
+                      flex
+                      gap-2
+                      px-2
+                      py-1
+                      z-50
+                    "
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateElement(element);
+                        }}
+                      >
+                        <Copy size={16} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteElement(element.id);
+                        }}
+                      >
+                        <Trash2
+                          size={16}
+                          className="text-red-500"
+                        />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* TEXT */}
+                  {element.type === "text" && (
+                    <div
+                      style={{
+                        fontSize: element.fontSize,
+                        color: element.color,
+                        fontWeight: element.fontWeight,
+                        fontStyle: element.fontStyle,
+                      }}
+                      className="
                       w-full
                       h-full
-                      cursor-move
                       flex
                       items-center
                       justify-center
-
-                      ${
-                        selectedElementId ===
-                        element.id
-                          ? "border-2 border-blue-500"
-                          : ""
-                      }
-                    `}
-                  >
-                    {/* Floating Toolbar */}
-                    {selectedElementId ===
-                      element.id && (
-                      <div
-                        className="
-                          absolute
-                          -top-12
-                          left-0
-                          flex
-                          items-center
-                          gap-2
-                          bg-white
-                          border
-                          rounded-lg
-                          shadow-md
-                          px-2
-                          py-1
-                          z-50
-                        "
-                      >
-                        <button
-                          onClick={() =>
-                            duplicateElement(
-                              element
-                            )
-                          }
-                        >
-                          <Copy
-                            size={16}
-                          />
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            duplicateElement(
-                              element
-                            )
-                          }
-                        >
-                          <Layers3
-                            size={16}
-                          />
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            deleteElement(
-                              element.id
-                            )
-                          }
-                        >
-                          <Trash2
-                            size={16}
-                            className="
-                              text-red-500
-                            "
-                          />
-                        </button>
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        color:
-                          element.color,
-                        fontSize:
-                          element.fontSize,
-                        fontFamily:
-                          element.fontFamily,
-                        fontWeight:
-                          element.fontWeight,
-                        fontStyle:
-                          element.fontStyle,
-                        textAlign:
-                          element.textAlign,
-                      }}
-                      className="
-                        w-full
-                        h-full
-                        flex
-                        items-center
-                        justify-center
-                        select-none
-                      "
+                    "
                     >
                       {element.value}
                     </div>
-                  </div>
-                </Rnd>
-              )
-            )}
+                  )}
+
+                  {/* IMAGE */}
+                  {element.type === "image" && (
+                    <img
+                      src={element.src}
+                      alt=""
+                      className="
+                      w-full
+                      h-full
+                      object-contain
+                    "
+                    />
+                  )}
+
+                  {/* STICKER */}
+                  {element.type === "sticker" && (
+                    <img
+                      src={element.src}
+                      alt=""
+                      className="
+                      w-full
+                      h-full
+                      object-contain
+                    "
+                    />
+                  )}
+                </div>
+              </Rnd>
+            ))}
           </div>
         </div>
       </div>
@@ -290,3 +231,8 @@ function CanvasArea({
 }
 
 export default CanvasArea;
+
+
+
+
+

@@ -2,124 +2,145 @@ import { useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas-pro";
+import jsPDF from "jspdf";
 
 import LeftToolbar from "../commn/LeftToolbar";
 import CanvasArea from "../commn/CanvasArea";
-import PropertiesPanel from "../commn/PropertiesPanel";
 import PageManager from "../commn/PageManager";
-import Button from "../../../components/ui/Button"
+
+import SizeModal from "../commn/SizeModal";
+import StickerModal from "../commn/StickerModal";
+import TextModal from "../commn/TextModal";
+import TextEditorModal from "../commn/TextEditorModal";
+import PreviewModal from "../commn/PreviewModal";
+import ExportModal from "../commn/ExportModal";
+
+import Button from "../../../components/ui/Button";
 
 function CustomPlus() {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
-  const [
-    certificateImage,
-    setCertificateImage,
-  ] = useState(null);
-
   const [pages, setPages] = useState([
     {
       id: 1,
       name: "Page 1",
+      width: 1123,
+      height: 794,
+      certificateImage: null,
+      elements: [],
     },
   ]);
 
-  const [
-    activePage,
-    setActivePage,
-  ] = useState(0);
+  const [activePage, setActivePage] = useState(0);
+  const [selectedElementId, setSelectedElementId] = useState(null);
 
-  const [elements, setElements] =
-    useState([
-      {
-        id: Date.now(),
-        type: "text",
-        value: "{{Name}}",
-        x: 250,
-        y: 180,
-        width: 220,
-        height: 50,
-        fontSize: 32,
-        color: "#BB860B",
-        fontFamily: "Poppins",
-        fontWeight: "bold",
-        fontStyle: "normal",
-        textAlign: "center",
-      },
-    ]);
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [showStickerModal, setShowStickerModal] = useState(false);
+  const [showTextMenu, setShowTextMenu] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
-  const [
-    selectedElementId,
-    setSelectedElementId,
-  ] = useState(null);
+  const currentPage = pages[activePage];
+  const elements = currentPage.elements || [];
+  const selectedElement = elements.find((el) => el.id === selectedElementId);
 
-  const selectedElement =
-    elements.find(
-      (el) =>
-        el.id ===
-        selectedElementId
+  const certificateImage = currentPage.certificateImage;
+  const canvasWidth = currentPage.width;
+  const canvasHeight = currentPage.height;
+
+  const updateCurrentPage = (updates) => {
+    setPages((prev) =>
+      prev.map((page, index) =>
+        index === activePage ? { ...page, ...updates } : page
+      )
     );
+  };
 
-  const addText = () => {
-    const newText = {
+  const addUploadedImage = (src) => {
+    const image = {
+      id: Date.now(),
+      type: "image",
+      src,
+      x: 150,
+      y: 150,
+      width: 200,
+      height: 150,
+    };
+
+    updateCurrentPage({
+      elements: [...elements, image],
+    });
+
+    setSelectedElementId(image.id);
+  };
+
+  const setCurrentPageImage = (image) => {
+    updateCurrentPage({
+      certificateImage: image,
+    });
+  };
+
+  const addText = (value = "{{Name}}") => {
+    const text = {
       id: Date.now(),
       type: "text",
-      value: "New Text",
+      value,
       x: 150,
       y: 150,
       width: 220,
       height: 50,
-      fontSize: 28,
-      color: "#000000",
-      fontFamily: "Poppins",
+      fontSize: 32,
+      color: "#000",
       fontWeight: "normal",
       fontStyle: "normal",
-      textAlign: "center",
     };
 
-    setElements((prev) => [
-      ...prev,
-      newText,
-    ]);
+    updateCurrentPage({
+      elements: [...elements, text],
+    });
 
-    setSelectedElementId(
-      newText.id
-    );
+    setSelectedElementId(text.id);
   };
 
-  const updateElement = (
-    id,
-    updates
-  ) => {
-    setElements((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              ...updates,
-            }
-          : item
-      )
-    );
+  const addSticker = (src) => {
+    const sticker = {
+      id: Date.now(),
+      type: "sticker",
+      src,
+      x: 200,
+      y: 200,
+      width: 100,
+      height: 100,
+    };
+
+    updateCurrentPage({
+      elements: [...elements, sticker],
+    });
+
+    setSelectedElementId(sticker.id);
   };
 
-  const deleteElement = (
-    id
-  ) => {
-    setElements((prev) =>
-      prev.filter(
-        (item) =>
-          item.id !== id
-      )
+  const updateElement = (id, updates) => {
+    const updated = elements.map((item) =>
+      item.id === id ? { ...item, ...updates } : item
     );
+
+    updateCurrentPage({
+      elements: updated,
+    });
+  };
+
+  const deleteElement = (id) => {
+    updateCurrentPage({
+      elements: elements.filter((item) => item.id !== id),
+    });
 
     setSelectedElementId(null);
   };
 
-  const duplicateElement = (
-    element
-  ) => {
+  const duplicateElement = (element) => {
     const copy = {
       ...element,
       id: Date.now(),
@@ -127,186 +148,170 @@ function CustomPlus() {
       y: element.y + 20,
     };
 
-    setElements((prev) => [
-      ...prev,
-      copy,
-    ]);
+    updateCurrentPage({
+      elements: [...elements, copy],
+    });
   };
 
   const addPage = () => {
-    setPages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        name: `Page ${
-          prev.length + 1
-        }`,
-      },
-    ]);
+    const newPage = {
+      id: Date.now(),
+      name: `Page ${pages.length + 1}`,
+      width: 1123,
+      height: 794,
+      certificateImage: null,
+      elements: [],
+    };
+
+    setPages((prev) => [...prev, newPage]);
+    setActivePage(pages.length);
+    setSelectedElementId(null);
   };
 
-  // const downloadPNG =
-  //   async () => {
-  //     if (!canvasRef.current)
-  //       return;
+  // Helper function to handle scaling reset and UI-cleanup before layout rendering
+  const prepareCanvasForExport = () => {
+    if (!canvasRef.current) return null;
 
-  //     const canvas =
-  //       await html2canvas(
-  //         canvasRef.current
-  //       );
-     
+    // CanvasArea hierarchy: canvasRef -> innerWrapper -> scaledWrapper (grandParent)
+    const innerWrapper = canvasRef.current.parentElement;
+    const grandParentWrapper = innerWrapper?.parentElement;
+    const originalTransform = grandParentWrapper ? grandParentWrapper.style.transform : "";
 
-  //     const link =
-  //       document.createElement(
-  //         "a"
-  //       );
+    if (grandParentWrapper) {
+      grandParentWrapper.style.transform = "none";
+    }
 
-  //     link.download =
-  //       "certificate.png";
+    const currentSelectedId = selectedElementId;
+    setSelectedElementId(null);
 
-  //     link.href =
-  //       canvas.toDataURL(
-  //         "image/png"
-  //       );
+    return { grandParentWrapper, originalTransform, currentSelectedId };
+  };
 
-  //     link.click();
-  //   };
+  // Helper function to restore scale and selections back to normal UI view
+  const restoreCanvasAfterExport = (cleanupData) => {
+    if (!cleanupData) return;
+    const { grandParentWrapper, originalTransform, currentSelectedId } = cleanupData;
+
+    if (grandParentWrapper) {
+      grandParentWrapper.style.transform = originalTransform;
+    }
+    setSelectedElementId(currentSelectedId);
+  };
+
   const downloadPNG = async () => {
-  if (!canvasRef.current) return;
+    const cleanupData = prepareCanvasForExport();
+    if (!cleanupData) return;
 
-  const canvas = await html2canvas(canvasRef.current, {
-    backgroundColor: "#ffffff",
-    useCORS: true,
-  });
+    // Small delay to allow browser layout engine to catch up with transform removal
+    await new Promise((resolve) => setTimeout(resolve, 60));
 
-  const link = document.createElement("a");
-  link.download = "certificate.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-};
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        scale: 2, // High resolution crisp exports
+      });
+
+      const link = document.createElement("a");
+      link.download = "certificate.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("PNG Export Failed:", err);
+    } finally {
+      restoreCanvasAfterExport(cleanupData);
+    }
+  };
+
+  const downloadJPEG = async () => {
+    const cleanupData = prepareCanvasForExport();
+    if (!cleanupData) return;
+
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        scale: 2,
+      });
+
+      const link = document.createElement("a");
+      link.download = "certificate.jpg";
+      link.href = canvas.toDataURL("image/jpeg", 1.0);
+      link.click();
+    } catch (err) {
+      console.error("JPEG Export Failed:", err);
+    } finally {
+      restoreCanvasAfterExport(cleanupData);
+    }
+  };
+
+  const downloadPDF = async () => {
+    const cleanupData = prepareCanvasForExport();
+    if (!cleanupData) return;
+
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    try {
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        scale: 2,
+      });
+
+      const img = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [canvasWidth, canvasHeight],
+      });
+
+      pdf.addImage(img, "PNG", 0, 0, canvasWidth, canvasHeight);
+      pdf.save("certificate.pdf");
+    } catch (err) {
+      console.error("PDF Export Failed:", err);
+    } finally {
+      restoreCanvasAfterExport(cleanupData);
+    }
+  };
 
   return (
-   
-    <div
-className="
-h-screen
-flex
-overflow-hidden
-bg-[#eef1f5]
-
-min-w-0
-"
->
-
-      {/* Left Toolbar */}
+    <div className="h-screen flex overflow-hidden bg-[#eef1f5]">
       <LeftToolbar
+        setShowSizeModal={setShowSizeModal}
+        setShowStickerModal={setShowStickerModal}
+        setShowTextMenu={setShowTextMenu}
+        setCertificateImage={setCurrentPageImage}
+        downloadPNG={downloadPNG}
         addText={addText}
-        setCertificateImage={
-          setCertificateImage
-        }
-        downloadPNG={
-          downloadPNG
-        }
+        addUploadedImage={addUploadedImage}
+        setShowPreview={setShowPreview}
+        setShowExportModal={setShowExportModal}
       />
 
-      {/* Main Content */}
-      {/* <div className="flex flex-col flex-1 overflow-hidden"> */}
-      <div
-className="
-flex
-flex-col
-
-flex-1
-
-min-w-0
-
-overflow-hidden
-"
->
-
+      <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top Header */}
-       
-        <div
-className="
-h-14
+        <div className="h-14 bg-white border-b border-gray-200 px-5 flex items-center justify-between">
+          <Button
+            onClick={() => {
+              navigate("/");
+            }}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft size={18} />
+            Back
+          </Button>
 
-bg-white
-
-border-b
-border-gray-200
-
-px-2
-md:px-6
-
-flex
-items-center
-
-justify-between
-
-gap-2
-
-flex-shrink-0
-"
->
+          <h2 className="font-semibold text-lg">Custom+</h2>
 
           <Button
-      onClick={() => navigate("/")}
-     
-      className="
-flex
-items-center
-
-gap-1
-
-px-2
-md:px-3
-
-py-2
-
-text-xs
-md:text-sm
-"
-    >
-      <ArrowLeft size={18} />
-      Back
-    </Button>
-    
-         
-          <h2
-className="
-text-sm
-md:text-lg
-
-font-semibold
-
-text-gray-800
-
-truncate
-"
->
-Custom+
-</h2>
-
-          <Button
-            onClick={
-              downloadPNG
-            }
-            
-            className="
-px-2
-md:px-4
-
-py-2
-
-text-xs
-md:text-sm
-
-bg-[#20B2AA]
-
-text-white
-
-rounded-lg
-"
+            onClick={downloadPNG}
+            className="bg-[#20B2AA] text-white px-4 py-2 rounded-lg"
           >
             Download PNG
           </Button>
@@ -314,94 +319,77 @@ rounded-lg
 
         {/* Canvas + Pages */}
         <div className="flex flex-1 overflow-hidden">
-
-          {/* Canvas Section */}
           <div className="flex flex-col flex-1 overflow-hidden">
-
             <CanvasArea
-              canvasRef={
-                canvasRef
-              }
-              certificateImage={
-                certificateImage
-              }
-              elements={
-                elements
-              }
-              updateElement={
-                updateElement
-              }
-              selectedElementId={
-                selectedElementId
-              }
-              setSelectedElementId={
-                setSelectedElementId
-              }
-              duplicateElement={
-                duplicateElement
-              }
-              deleteElement={
-                deleteElement
-              }
+              canvasRef={canvasRef}
+              certificateImage={certificateImage}
+              elements={elements}
+              updateElement={updateElement}
+              selectedElementId={selectedElementId}
+              setSelectedElementId={setSelectedElementId}
+              duplicateElement={duplicateElement}
+              deleteElement={deleteElement}
+              canvasWidth={canvasWidth}
+              canvasHeight={canvasHeight}
+              uploadedImages={uploadedImages}
             />
 
-            {/* <PageManager
+            <PageManager
               pages={pages}
-              activePage={
-                activePage
-              }
-              setActivePage={
-                setActivePage
-              }
-              addPage={
-                addPage
-              }
-            /> */}
-            <div className="hidden md:block">
-
-  <PageManager
-    pages={pages}
-    activePage={
-      activePage
-    }
-    setActivePage={
-      setActivePage
-    }
-    addPage={
-      addPage
-    }
-  />
-
-</div>
-
+              activePage={activePage}
+              setActivePage={(index) => {
+                setActivePage(index);
+                setSelectedElementId(null);
+              }}
+              addPage={addPage}
+            />
           </div>
-
-          {/* Properties */}
-          {/* <PropertiesPanel
-            selectedElement={
-              selectedElement
-            }
-            updateElement={
-              updateElement
-            }
-          /> */}
-          <div className="hidden md:block">
-
-  <PropertiesPanel
-    selectedElement={
-      selectedElement
-    }
-    updateElement={
-      updateElement
-    }
-  />
-
-</div>
-
         </div>
-
       </div>
 
+      <SizeModal
+        show={showSizeModal}
+        setShow={setShowSizeModal}
+        changePageSize={(width, height) => {
+          updateCurrentPage({ width, height });
+        }}
+      />
+
+      <StickerModal
+        show={showStickerModal}
+        setShow={setShowStickerModal}
+        addSticker={addSticker}
+      />
+
+      <TextModal
+        show={showTextMenu}
+        setShow={setShowTextMenu}
+        addText={addText}
+      />
+
+      <PreviewModal
+        show={showPreview}
+        setShow={setShowPreview}
+        certificateImage={certificateImage}
+        elements={elements}
+        canvasWidth={canvasWidth}
+        canvasHeight={canvasHeight}
+      />
+
+      <ExportModal
+        show={showExportModal}
+        setShow={setShowExportModal}
+        exportPNG={downloadPNG}
+        exportJPEG={downloadJPEG}
+        exportPDF={downloadPDF}
+      />
+
+      {selectedElement?.type === "text" && (
+        <TextEditorModal
+          selectedElement={selectedElement}
+          updateElement={updateElement}
+        />
+      )}
     </div>
   );
 }
